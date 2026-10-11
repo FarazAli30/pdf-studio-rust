@@ -1,0 +1,147 @@
+name: Build PDF Studio
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Fast feedback: does the Rust engine compile? Does the frontend type-check/build?
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - run: npm install
+
+      - name: Generate icons
+        run: npx tauri icon public/favicon.svg
+
+      - name: Frontend build
+        run: npm run build
+
+      - name: cargo check
+        working-directory: src-tauri
+        run: cargo check --all-targets
+
+      - name: cargo clippy (non-blocking)
+        working-directory: src-tauri
+        continue-on-error: true
+        run: cargo clippy --all-targets -- -W clippy::all
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            pdfium: pdfium-linux-x64
+            lib: lib/libpdfium.so
+          - os: windows-latest
+            pdfium: pdfium-win-x64
+            lib: bin/pdfium.dll
+          - os: macos-latest        # Apple Silicon
+            pdfium: pdfium-mac-arm64
+            lib: lib/libpdfium.dylib
+            args: --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
+          - os: macos-13            # Intel
+            pdfium: pdfium-mac-x64
+            lib: lib/libpdfium.dylib
+            args: --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Download pdfium (${{ matrix.pdfium }})
+        shell: bash
+        run: |
+          mkdir -p pdfium-dl src-tauri/pdfium
+          curl -fsSL -o pdfium.tgz "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/${{ matrix.pdfium }}.tgz"
+          tar -xzf pdfium.tgz -C pdfium-dl
+          cp "pdfium-dl/${{ matrix.lib }}" src-tauri/pdfium/
+          ls -la src-tauri/pdfium
+
+      - run: npm install
+
+      - name: Generate icons
+        run: npx tauri icon public/favicon.svg
+
+      - name: Build app
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-studio-${{ matrix.os }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/**/*
+            src-tauri/target/*/release/bundle/**/*
+
+  # Tag a release (git tag v1.0.0 && git push --tags) to attach all installers to a GitHub release
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-artifacts/**/*.deb
+            dist-artifacts/**/*.AppImage
+            dist-artifacts/**/*.rpm
+            dist-artifacts/**/*.msi
+            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.dmg
