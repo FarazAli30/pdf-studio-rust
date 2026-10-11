@@ -1,0 +1,54 @@
+[package]
+name = "pdf-studio"
+version = "1.0.0"
+description = "PDF Studio - Tauri + Rust PDF engine"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "pdf_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+default = []
+# HEIC decoding needs the system libheif (apt install libheif-dev / brew install libheif)
+heic = ["libheif-rs"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+
+# PDF object model / writer
+lopdf = "0.34"
+flate2 = "1"
+
+# Raster images (signature / JPG->PDF / QR etc.)
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tiff"] }
+
+# Standard security handler (RC4-128 encrypt, RC4/AES-128 decrypt)
+md-5 = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+rand = "0.8"
+regex = "1"
+
+# Phase 2: rendering, conversion
+pdfium-render = "0.8"        # needs the pdfium shared library next to the app (see README)
+pulldown-cmark = { version = "0.12", default-features = false }
+resvg = "0.44"
+libheif-rs = { version = "1", optional = true }
+
+# QR stamp
+qrcode = { version = "0.14", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
