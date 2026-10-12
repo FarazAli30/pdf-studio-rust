@@ -9,71 +9,19 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # Fast feedback: does the Rust engine compile? Does the frontend type-check/build?
-  check:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-
-      - run: npm install
-
-      - name: Generate icons
-        run: npx tauri icon public/favicon.svg
-
-      - name: Frontend build
-        run: npm run build
-
-      - name: cargo check
-        working-directory: src-tauri
-        run: cargo check --all-targets
-
-      - name: cargo clippy (non-blocking)
-        working-directory: src-tauri
-        continue-on-error: true
-        run: cargo clippy --all-targets -- -W clippy::all
-
   build:
-    needs: check
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
-            pdfium: pdfium-linux-x64
-            lib: lib/libpdfium.so
-          - os: windows-latest
-            pdfium: pdfium-win-x64
+          - os: windows-latest      # 32-bit Windows (x86) - the only target
+            pdfium: pdfium-win-x86
             lib: bin/pdfium.dll
-          - os: macos-latest        # Apple Silicon
-            pdfium: pdfium-mac-arm64
-            lib: lib/libpdfium.dylib
-            args: --target aarch64-apple-darwin
-            target: aarch64-apple-darwin
-          - os: macos-13            # Intel
-            pdfium: pdfium-mac-x64
-            lib: lib/libpdfium.dylib
-            args: --target x86_64-apple-darwin
-            target: x86_64-apple-darwin
+            args: --target i686-pc-windows-msvc
+            target: i686-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -89,6 +37,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.target }}
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
