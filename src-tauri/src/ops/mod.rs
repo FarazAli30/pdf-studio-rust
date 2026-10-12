@@ -5,6 +5,7 @@ pub mod info;
 pub mod pages;
 pub mod render;
 pub mod secure;
+pub mod vision;
 pub mod stamp;
 
 use anyhow::{bail, Result};
@@ -91,6 +92,12 @@ pub fn dispatch(op: &str, p: Value, blobs: Vec<Vec<u8>>) -> Result<Output> {
         "images_to_pdf" => convert::images_to_pdf(&p, &blobs),
         "txt_to_pdf" => convert::txt_to_pdf(&p),
         "md_to_pdf" => convert::md_to_pdf(&p),
+        // ---- phase 4: pure-Rust image processing + OCR ----
+        "ocr" => vision::ocr(&blobs),
+        "deskew" => vision::deskew(&p, &blobs),
+        "enhance" => vision::enhance(&p, &blobs),
+        "whiten" => vision::whiten(&p, &blobs),
+        "sig_detect" => vision::sig_detect(&blobs),
         // ---- security ----
         "protect" => secure::protect(&p, &blobs),
         "unlock" => secure::unlock(&p, &blobs),

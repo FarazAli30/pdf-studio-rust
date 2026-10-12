@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PDFDocument } from "pdf-lib";
-import * as pdfjs from "pdfjs-dist";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,26 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
+import { enhancePdf, bytesOf } from "@/lib/backend";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 function downloadBlob(b: Uint8Array, n: string) { const url=URL.createObjectURL(new Blob([b.slice()],{type:"application/pdf"})),a=document.createElement("a");a.href=url;a.download=n;a.click();URL.revokeObjectURL(url); }
-declare const cv: any;
-async function waitForCV() { return new Promise<void>(res=>{ if(typeof cv!=="undefined"&&cv.Mat) res(); else { const t=setInterval(()=>{ if(typeof cv!=="undefined"&&cv.Mat){clearInterval(t);res();} },100); } }); }
 
-async function enhanceCanvas(canvas: HTMLCanvasElement, opts: {denoise:boolean;sharpen:boolean;contrast:number;binarize:boolean}): Promise<HTMLCanvasElement> {
-  await waitForCV();
-  let mat = cv.imread(canvas);
-  const gray = new cv.Mat();
-  cv.cvtColor(mat,gray,cv.COLOR_RGBA2GRAY);
-  mat.delete(); mat=gray;
-  if(opts.denoise){ const d=new cv.Mat(); cv.GaussianBlur(mat,d,new cv.Size(3,3),0); mat.delete(); mat=d; }
-  if(opts.contrast!==1){ const d=new cv.Mat(); mat.convertTo(d,-1,opts.contrast,0); mat.delete(); mat=d; }
-  if(opts.sharpen){ const k=cv.matFromArray(3,3,cv.CV_32F,[-1,-1,-1,-1,9,-1,-1,-1,-1]); const d=new cv.Mat(); cv.filter2D(mat,d,-1,k); k.delete(); mat.delete(); mat=d; }
-  if(opts.binarize){ const d=new cv.Mat(); cv.adaptiveThreshold(mat,d,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,11,2); mat.delete(); mat=d; }
-  const rgba=new cv.Mat(); cv.cvtColor(mat,rgba,cv.COLOR_GRAY2RGBA); mat.delete();
-  const out=document.createElement("canvas"); cv.imshow(out,rgba); rgba.delete();
-  return out;
-}
 
 export default function EnhanceScan() {
   const [file,setFile]=useState<File|null>(null);
@@ -49,24 +31,7 @@ export default function EnhanceScan() {
     if (!file) return;
     setIsProcessing(true); setError(null);
     try {
-      const ab = await file.arrayBuffer();
-      const pdfDoc = await pdfjs.getDocument({data:ab.slice(0)}).promise;
-      const libDoc = await PDFDocument.load(ab);
-      for (let i=0;i<pdfDoc.numPages;i++) {
-        const page = await pdfDoc.getPage(i+1);
-        const vp = page.getViewport({scale:1.5});
-        const canvas = document.createElement("canvas");
-        canvas.width=vp.width; canvas.height=vp.height;
-        await page.render({ canvas: canvas, canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
-        const enhanced = await enhanceCanvas(canvas,{denoise,sharpen,contrast:contrast[0],binarize});
-        const dataUrl = enhanced.toDataURL("image/jpeg",quality[0]/100);
-        const bytes = Uint8Array.from(atob(dataUrl.split(",")[1]),c=>c.charCodeAt(0));
-        const img = await libDoc.embedJpg(bytes);
-        const libPage = libDoc.getPage(i);
-        const {width,height} = libPage.getSize();
-        libPage.drawImage(img,{x:0,y:0,width,height});
-      }
-      const result = await libDoc.save();
+      const result = await enhancePdf(await bytesOf(file), { denoise, sharpen, contrast: contrast[0], binarize, quality: quality[0] });
       setResultBytes(result); setOutputSize(result.byteLength); setIsSuccess(true);
       updatePdf({ bytes: result, name: `enhanced-${file.name}` });
     } catch(e:unknown){setError((e as Error).message);}

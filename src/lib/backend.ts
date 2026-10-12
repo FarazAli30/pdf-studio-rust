@@ -119,6 +119,15 @@ export const imagesToPdf = (images: Uint8Array[], pageSize: string) => pdfOp("im
 export const txtToPdf = (text: string, fontSize: number, margin: number) => pdfOp("txt_to_pdf", { text, fontSize, margin }, []);
 export const mdToPdf = (text: string, theme: string, pageSize: string) => pdfOp("md_to_pdf", { text, theme, pageSize }, []);
 
+// ---------------- phase 4: pure-Rust image processing + OCR ----------------
+export interface OcrBox { text: string; mean: number; box: [[number, number], [number, number], [number, number], [number, number]] }
+export const ocrImage = (png: Uint8Array) => call<{ boxes: OcrBox[] }>("ocr", {}, [png]).then(r => r.json.boxes);
+export const deskewPdf = (pdf: Uint8Array, auto: boolean, angle: number) => call<{ angles: number[] }>("deskew", { auto, angle, quality: 92 }, [pdf]).then(r => ({ bytes: r.blobs[0], angles: r.json.angles }));
+export const enhancePdf = (pdf: Uint8Array, o: { denoise: boolean; sharpen: boolean; contrast: number; binarize: boolean; quality: number }) => pdfOp("enhance", o, [pdf]);
+export const whitenPdf = (pdf: Uint8Array, mode: string, threshold: number) => pdfOp("whiten", { mode, threshold }, [pdf]);
+export interface SigCandidate { page: number; region: string; confidence: number; x: number; y: number; w: number; h: number }
+export const detectSignatures = (pdf: Uint8Array) => call<{ candidates: SigCandidate[] }>("sig_detect", {}, [pdf]).then(r => r.json.candidates);
+
 // ---------------- native save ----------------
 export async function saveFile(name: string, bytes: Uint8Array): Promise<boolean> {
   return invoke<boolean>("save_file", encode({ op: "save", params: { name } }, [bytes]));

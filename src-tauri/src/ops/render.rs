@@ -36,7 +36,7 @@ pub fn engine() -> Result<Pdfium> {
     }
 }
 
-fn render_page(page: &PdfPage, scale: f32) -> Result<RgbImage> {
+pub fn render_page(page: &PdfPage, scale: f32) -> Result<RgbImage> {
     let cfg = PdfRenderConfig::new()
         .scale_page_by_factor(scale)
         .set_clear_color(PdfColor::WHITE)

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PDFDocument } from "pdf-lib";
-import * as pdfjs from "pdfjs-dist";
 import { Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,30 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
+import { whitenPdf, bytesOf } from "@/lib/backend";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 function downloadBlob(b: Uint8Array, n: string) { const url=URL.createObjectURL(new Blob([b.slice()],{type:"application/pdf"})),a=document.createElement("a");a.href=url;a.download=n;a.click();URL.revokeObjectURL(url); }
-declare const cv: any;
-async function waitForCV() { return new Promise<void>(res=>{ if(typeof cv!=="undefined"&&cv.Mat) res(); else { const t=setInterval(()=>{ if(typeof cv!=="undefined"&&cv.Mat){clearInterval(t);res();} },100); } }); }
 
-async function whitenBg(canvas: HTMLCanvasElement, mode: string, threshold: number): Promise<HTMLCanvasElement> {
-  await waitForCV();
-  let mat = cv.imread(canvas);
-  const gray = new cv.Mat();
-  cv.cvtColor(mat,gray,cv.COLOR_RGBA2GRAY);
-  const result = new cv.Mat();
-  if (mode==="adaptive") {
-    cv.adaptiveThreshold(gray,result,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,21,10);
-  } else if (mode==="otsu") {
-    cv.threshold(gray,result,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU);
-  } else {
-    cv.threshold(gray,result,threshold,255,cv.THRESH_BINARY);
-  }
-  const rgba=new cv.Mat(); cv.cvtColor(result,rgba,cv.COLOR_GRAY2RGBA);
-  [mat,gray,result].forEach(m=>m.delete());
-  const out=document.createElement("canvas"); cv.imshow(out,rgba); rgba.delete();
-  return out;
-}
 
 export default function BackgroundWhitener() {
   const [file,setFile]=useState<File|null>(null);
@@ -50,24 +28,7 @@ export default function BackgroundWhitener() {
     if (!file) return;
     setIsProcessing(true); setError(null);
     try {
-      const ab = await file.arrayBuffer();
-      const pdfDoc = await pdfjs.getDocument({data:ab.slice(0)}).promise;
-      const libDoc = await PDFDocument.load(ab);
-      for (let i=0;i<pdfDoc.numPages;i++) {
-        const page = await pdfDoc.getPage(i+1);
-        const vp = page.getViewport({scale:2});
-        const canvas = document.createElement("canvas");
-        canvas.width=vp.width; canvas.height=vp.height;
-        await page.render({ canvas: canvas, canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
-        const whitened = await whitenBg(canvas,mode,threshold[0]);
-        const dataUrl = whitened.toDataURL("image/png");
-        const bytes = Uint8Array.from(atob(dataUrl.split(",")[1]),c=>c.charCodeAt(0));
-        const img = await libDoc.embedPng(bytes);
-        const libPage = libDoc.getPage(i);
-        const {width,height} = libPage.getSize();
-        libPage.drawImage(img,{x:0,y:0,width,height});
-      }
-      const result = await libDoc.save();
+      const result = await whitenPdf(await bytesOf(file), mode, threshold[0]);
       setResultBytes(result); setOutputSize(result.byteLength); setIsSuccess(true);
       updatePdf({ bytes: result, name: `whitened-${file.name}` });
     } catch(e:unknown){setError((e as Error).message);}

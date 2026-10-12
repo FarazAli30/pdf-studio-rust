@@ -1,8 +1,10 @@
 mod canvas;
 mod fonts;
+mod imgproc;
 mod ipc;
 mod ops;
 mod pdfkit;
+mod resources;
 mod security;
 
 use tauri::ipc::{InvokeBody, Request, Response};

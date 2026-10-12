@@ -44,11 +44,16 @@ pulldown-cmark = { version = "0.12", default-features = false }
 resvg = "0.44"
 libheif-rs = { version = "1", optional = true }
 
+# Phase 4: pure-Rust image processing + OCR
+imageproc = { version = "0.25", default-features = false }
+ocrs = "0.10"                # OCR engine (pure Rust, runs on rten)
+rten = "0.16"                # must match the rten version ocrs depends on
+
 # QR stamp
 qrcode = { version = "0.14", default-features = false }
 
 [profile.release]
 opt-level = 3
-lto = true
-codegen-units = 1
+lto = "thin"
+codegen-units = 16
 strip = true

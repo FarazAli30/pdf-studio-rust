@@ -8,26 +8,25 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "predev": "node scripts/copy-assets.mjs",
+    "prebuild": "node scripts/copy-assets.mjs"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.6.5",
-    "@paddle-js-models/ocr": "^4.1.1",
-    "@techstark/opencv-js": "^4.12.0-release.1",
     "@tesseract.js-data/deu": "^1.0.0",
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/fra": "^1.0.0",
     "@tesseract.js-data/ita": "^1.0.0",
     "@tesseract.js-data/por": "^1.0.0",
     "@tesseract.js-data/spa": "^1.0.0",
-    "esearch-ocr": "^5.1.5",
     "heic2any": "^0.0.4",
     "marked": "^18.0.3",
-    "paddleocr-browser": "^1.0.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.7.284",
     "piper-wasm": "^0.1.4",
-    "@tauri-apps/api": "^2.0.0"
+    "@tauri-apps/api": "^2.0.0",
+    "@fontsource/inter": "^5.0.0"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -75,8 +74,6 @@
     "javascript-obfuscator": "^5.4.2",
     "lucide-react": "^0.545.0",
     "next-themes": "^0.4.6",
-    "onnxruntime-web": "^1.14.0",
-    "paddleocr-browser": "^1.0.3",
     "react": "^19.1.0",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.1.0",

@@ -1,46 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import * as pdfjs from "pdfjs-dist";
 import { PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropZone from "@/components/FileDropZone";
+import { detectSignatures as detectSignaturesRust, bytesOf } from "@/lib/backend";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-declare const cv: any;
-async function waitForCV() { return new Promise<void>(res=>{ if(typeof cv!=="undefined"&&cv.Mat) res(); else { const t=setInterval(()=>{ if(typeof cv!=="undefined"&&cv.Mat){clearInterval(t);res();} },100); } }); }
 
 interface SigCandidate { page: number; region: string; confidence: number; x: number; y: number; w: number; h: number; }
 
-async function detectSignatures(canvas: HTMLCanvasElement, pageNum: number): Promise<SigCandidate[]> {
-  await waitForCV();
-  const mat = cv.imread(canvas);
-  const gray = new cv.Mat();
-  cv.cvtColor(mat,gray,cv.COLOR_RGBA2GRAY);
-  const inv = new cv.Mat();
-  cv.bitwise_not(gray,inv);
-  const bin = new cv.Mat();
-  cv.threshold(inv,bin,30,255,cv.THRESH_BINARY);
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  cv.findContours(bin,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
-  const {cols:W,rows:H} = mat;
-  const candidates: SigCandidate[] = [];
-  for (let i=0;i<contours.size();i++) {
-    const cnt = contours.get(i);
-    const rect = cv.boundingRect(cnt);
-    const area = rect.width*rect.height;
-    const aspect = rect.width/Math.max(rect.height,1);
-    if (area>800&&area<W*H*0.3&&aspect>0.5&&aspect<15&&rect.height>15) {
-      const relY = rect.y/H;
-      const region = relY>0.75?"bottom":relY<0.25?"top":"middle";
-      const conf = Math.min(95,50+Math.round((area/5000)*20)+(region==="bottom"?15:0));
-      candidates.push({page:pageNum,region,confidence:conf,x:rect.x,y:rect.y,w:rect.width,h:rect.height});
-    }
-    cnt.delete();
-  }
-  [mat,gray,inv,bin,contours,hierarchy].forEach(m=>m.delete());
-  return candidates.sort((a,b)=>b.confidence-a.confidence).slice(0,5);
-}
 
 export default function SignatureDetector() {
   const [file,setFile]=useState<File|null>(null);
@@ -51,17 +18,7 @@ export default function SignatureDetector() {
   const analyze = async (f: File) => {
     setFile(f); setCandidates([]); setError(null); setLoading(true);
     try {
-      const doc = await pdfjs.getDocument({data:await f.arrayBuffer()}).promise;
-      const all: SigCandidate[] = [];
-      for (let i=1;i<=doc.numPages;i++) {
-        const page = await doc.getPage(i);
-        const vp = page.getViewport({scale:1.5});
-        const canvas = document.createElement("canvas");
-        canvas.width=vp.width; canvas.height=vp.height;
-        await page.render({ canvas: canvas, canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
-        const found = await detectSignatures(canvas,i);
-        all.push(...found);
-      }
+      const all: SigCandidate[] = await detectSignaturesRust(await bytesOf(f));
       setCandidates(all);
       if (!all.length) setError("No signature candidates detected.");
     } catch(e:unknown){setError((e as Error).message);}

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PDFDocument } from "pdf-lib";
-import * as pdfjs from "pdfjs-dist";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -10,47 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
+import { deskewPdf, bytesOf } from "@/lib/backend";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 function downloadBlob(b: Uint8Array, n: string) { const url=URL.createObjectURL(new Blob([b.slice()],{type:"application/pdf"})),a=document.createElement("a");a.href=url;a.download=n;a.click();URL.revokeObjectURL(url); }
 
-declare const cv: any;
 
-async function waitForCV() { return new Promise<void>(res=>{ if(typeof cv!=="undefined"&&cv.Mat) res(); else { const t=setInterval(()=>{ if(typeof cv!=="undefined"&&cv.Mat){clearInterval(t);res();} },100); } }); }
 
-async function detectSkewAngle(canvas: HTMLCanvasElement): Promise<number> {
-  await waitForCV();
-  const src = cv.imread(canvas);
-  const gray = new cv.Mat();
-  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
-  const blur = new cv.Mat();
-  cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
-  const edges = new cv.Mat();
-  cv.Canny(blur,edges,50,150);
-  const lines = new cv.Mat();
-  cv.HoughLines(edges,lines,1,Math.PI/180,100);
-  let totalAngle=0, count=0;
-  for(let i=0;i<Math.min(lines.rows,50);i++){
-    const theta=lines.data32F[i*2+1];
-    const deg=(theta*180/Math.PI)-90;
-    if(Math.abs(deg)<45){totalAngle+=deg;count++;}
-  }
-  [src,gray,blur,edges,lines].forEach(m=>m.delete());
-  return count>0 ? totalAngle/count : 0;
-}
-
-async function deskewCanvas(src: HTMLCanvasElement, angle: number): Promise<HTMLCanvasElement> {
-  await waitForCV();
-  const mat = cv.imread(src);
-  const center = new cv.Point(mat.cols/2,mat.rows/2);
-  const M = cv.getRotationMatrix2D(center,-angle,1);
-  const dst = new cv.Mat();
-  cv.warpAffine(mat,dst,M,new cv.Size(mat.cols,mat.rows),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar(255,255,255,255));
-  const out = document.createElement("canvas");
-  cv.imshow(out,dst);
-  [mat,M,dst].forEach(m=>m.delete());
-  return out;
-}
 
 export default function DeskewPDF() {
   const [file,setFile]=useState<File|null>(null);
@@ -68,33 +31,8 @@ export default function DeskewPDF() {
     if (!file) return;
     setIsProcessing(true); setError(null);
     try {
-      const ab = await file.arrayBuffer();
-      const pdfDoc = await pdfjs.getDocument({data:ab.slice(0)}).promise;
-      const libDoc = await PDFDocument.load(ab);
-      const angles: number[] = [];
-
-      for (let i=0;i<pdfDoc.numPages;i++) {
-        const page = await pdfDoc.getPage(i+1);
-        const vp = page.getViewport({scale:1.5});
-        const canvas = document.createElement("canvas");
-        canvas.width=vp.width; canvas.height=vp.height;
-        await page.render({ canvas: canvas, canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
-
-        const angle = autoDetect ? await detectSkewAngle(canvas) : manualAngle[0];
-        angles.push(angle);
-        if (Math.abs(angle)<0.1) continue;
-
-        const corrected = await deskewCanvas(canvas,angle);
-        const jpeg = corrected.toDataURL("image/jpeg",0.92);
-        const b64 = jpeg.split(",")[1];
-        const bytes = Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-        const img = await libDoc.embedJpg(bytes);
-        const libPage = libDoc.getPage(i);
-        const {width,height} = libPage.getSize();
-        libPage.drawImage(img,{x:0,y:0,width,height});
-      }
+      const { bytes: result, angles } = await deskewPdf(await bytesOf(file), autoDetect, manualAngle[0]);
       setDetectedAngles(angles);
-      const result = await libDoc.save();
       setResultBytes(result); setOutputSize(result.byteLength); setIsSuccess(true);
       updatePdf({ bytes: result, name: `deskewed-${file.name}` });
     } catch(e:unknown){setError((e as Error).message);}
