@@ -47,7 +47,7 @@ libheif-rs = { version = "1", optional = true }
 # Phase 4: pure-Rust image processing + OCR
 imageproc = { version = "0.25", default-features = false }
 ocrs = "0.10"                # OCR engine (pure Rust, runs on rten)
-rten = "0.16"                # must match the rten version ocrs depends on
+rten = "0.21"                # must match the rten version ocrs depends on (ocrs 0.10.4 -> rten 0.21)
 
 # QR stamp
 qrcode = { version = "0.14", default-features = false }
