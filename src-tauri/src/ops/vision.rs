@@ -8,7 +8,6 @@ use crate::imgproc as ip;
 use crate::pdfkit::*;
 use image::{ExtendedColorType, GrayImage, ImageEncoder, RgbImage};
 use lopdf::{Document, ObjectId};
-use pdfium_render::prelude::*;
 
 fn encode_jpeg_gray(g: &GrayImage, quality: u8) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
