@@ -1,11 +1,13 @@
 name: Build PDF Studio
 
 on:
-  push:
-    branches: [main, master]
-    tags: ["v*"]
-  pull_request:
+  # Manual only: GitHub -> Actions -> "Build PDF Studio" -> Run workflow
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional: publish a GitHub release with this tag (e.g. v1.0.1). Leave empty to only build."
+        required: false
+        default: ""
 
 env:
   CARGO_TERM_COLOR: always
@@ -72,9 +74,8 @@ jobs:
             src-tauri/target/release/bundle/**/*
             src-tauri/target/*/release/bundle/**/*
 
-  # Tag a release (git tag v1.0.0 && git push --tags) to attach all installers to a GitHub release
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ inputs.release_tag != '' }}
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -85,10 +86,7 @@ jobs:
           path: dist-artifacts
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag }}
           files: |
-            dist-artifacts/**/*.deb
-            dist-artifacts/**/*.AppImage
-            dist-artifacts/**/*.rpm
             dist-artifacts/**/*.msi
             dist-artifacts/**/*.exe
-            dist-artifacts/**/*.dmg
