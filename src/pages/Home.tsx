@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -6,7 +6,7 @@ import {
   Copy, Shuffle, FileText, Info, ArrowRight, Upload, Zap,
   Image, AlignLeft, PenLine, Palette, ScanText,
   Search, Table2, List, Volume2, Settings2, Star, ImageIcon, FileDown, Github,
-  EyeOff, Highlighter, Scaling, Layers, Wrench,
+  EyeOff, Highlighter, Scaling, Layers, Wrench, ShieldCheck,
   Hash, BookOpen, LayoutGrid, ArrowLeftRight, Printer, CalendarDays, KeyRound,
   QrCode, Link2, Type, Grid2x2, TextSearch, Crop, Bookmark, PenTool,
   RotateCcw, Sparkles, Sun, Brain, Layout, Receipt, Smartphone,
@@ -104,13 +104,26 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [isDragging, setIsDragging] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [twoCol, setTwoCol] = useState(() => {
     try { return localStorage.getItem("pdf-studio-2col") === "1"; } catch { return false; }
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { recentItems, savedTools, toggleSaved, isSaved } = useRecent();
 
-  const filtered = activeCategory === "All" ? tools : tools.filter((t) => t.category === activeCategory);
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
+
+  const filtered = tools.filter((tool) => (activeCategory === "All" || tool.category === activeCategory) && (!searchQuery.trim() || `${tool.label} ${tool.desc} ${tool.category}`.toLowerCase().includes(searchQuery.trim().toLowerCase())));
 
   const handleFileSelected = useCallback(() => { setLocation("/merge"); }, [setLocation]);
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -120,75 +133,72 @@ export default function Home() {
   }, [handleFileSelected]);
 
   return (
-    <div className="min-h-screen pb-20">
-
-      {/* ── Category Filter — pinned 100% at top ── */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="px-4 py-3 max-w-5xl mx-auto">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={cn(
-                  "flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200",
-                  activeCategory === cat ? categoryColors[cat] : "bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-                data-testid={`category-${cat.toLowerCase()}`}
-              >
-                {cat}
-                {cat !== "All" && (
-                  <span className="ml-1.5 text-[10px] opacity-75">
-                    {tools.filter(t => t.category === cat).length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Hero ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-violet-50 to-background border-b border-border">
-        <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
-        <div className="relative px-6 py-10 md:py-16 max-w-3xl mx-auto text-center space-y-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-semibold mb-4">
-              <Zap className="w-3 h-3" /> 100% Browser-Based — No Uploads
+    <div className="home-page min-h-full pb-12">
+      {/* Main welcome panel */}
+      <section className="home-hero relative overflow-hidden">
+        <div className="hero-orb hero-orb-one" />
+        <div className="hero-orb hero-orb-two" />
+        <div className="home-hero-inner relative mx-auto grid max-w-[1240px] items-center gap-8 px-5 py-9 sm:px-8 sm:py-12 lg:grid-cols-[1.1fr_.9fr] lg:gap-12 lg:px-10 lg:py-14">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }} className="relative z-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold tracking-wide text-primary shadow-sm backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> PRIVATE BY DESIGN <span className="text-primary/40">·</span> WORKS OFFLINE
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
-              Your PDF Toolkit,<br /><span className="text-primary">Browser-Powered</span>
+            <h1 className="mt-5 max-w-[650px] text-[2.35rem] font-bold leading-[1.08] tracking-[-.055em] text-slate-950 sm:text-5xl lg:text-[3.35rem]">
+              Make every PDF<br className="hidden sm:block" /> work <span className="text-primary">better.</span>
             </h1>
-            <p className="text-muted-foreground text-lg mt-4 max-w-xl mx-auto">
-              {tools.length} tools — merge, split, OCR, convert, sign, and more. All private, all local.
+            <p className="mt-4 max-w-xl text-[15px] leading-7 text-slate-600 sm:text-base">
+              A thoughtful workspace for your documents. Edit, organize, convert and analyze — all on your device.
             </p>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
-            className={`relative rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer p-10 ${isDragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-border bg-background/80 hover:border-primary/50 hover:bg-accent/20"}`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-            data-testid="home-dropzone"
-          >
-            <div className="flex flex-col items-center gap-3">
-              <motion.div animate={isDragging ? { scale: 1.2, rotate: 5 } : { scale: 1, rotate: 0 }} className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Upload className="w-7 h-7 text-primary" />
-              </motion.div>
-              <div>
-                <p className="font-semibold text-foreground">Drop PDF files here to get started</p>
-                <p className="text-sm text-muted-foreground mt-1">or click to browse your files</p>
-              </div>
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-600">
+              <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-600" /> Files stay on this device</span>
+              <span className="inline-flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {tools.length} focused tools</span>
             </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45, delay: .08 }}
+            className={cn("home-upload-card relative z-10", isDragging && "is-dragging")}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}
+            onClick={() => inputRef.current?.click()} role="button" tabIndex={0} aria-label="Choose a PDF to get started"
+            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inputRef.current?.click(); } }} data-testid="home-dropzone">
+            <div className="upload-icon-wrap"><Upload className="h-6 w-6" /></div>
+            <div className="text-center">
+              <p className="text-[15px] font-bold text-slate-900">Start with a document</p>
+              <p className="mt-1 text-sm text-slate-500">Drop a PDF here or browse your device</p>
+            </div>
+            <span className="upload-browse-button">
+              <Upload className="h-4 w-4" /> Choose PDF
+            </span>
+            <span className="text-[11px] text-slate-400">PDF files · processed locally · no account needed</span>
           </motion.div>
           <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={() => handleFileSelected()} />
         </div>
-      </div>
+      </section>
 
+      <section className="tool-library mx-auto max-w-[1240px] px-5 pt-8 sm:px-8 lg:px-10" aria-label="PDF tools">
+        <div className="library-heading flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[.14em] text-primary">Your workspace</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-[-.04em] text-slate-950">Find the right tool</h2>
+            <p className="mt-1 text-sm text-slate-500">Everything you need to get more from your documents.</p>
+          </div>
+          <label className="tool-search-box flex w-full items-center gap-2.5 sm:max-w-[310px]">
+            <Search className="h-[18px] w-[18px] shrink-0 text-slate-400" />
+            <input ref={searchInputRef} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="search" placeholder="Search 50+ PDF tools" aria-label="Search PDF tools" />
+            <kbd className="hidden rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 md:inline">⌘ K</kbd>
+          </label>
+        </div>
+
+        <div className="category-scroller mt-6 flex gap-2 overflow-x-auto pb-2" role="group" aria-label="Filter tools by category">
+          {CATEGORIES.map((cat) => (
+            <button key={cat} aria-pressed={activeCategory === cat} onClick={() => setActiveCategory(cat)}
+              className={cn("category-chip", activeCategory === cat && "category-chip-active")} data-testid={`category-${cat.toLowerCase()}`}>
+              {cat}<span className="ml-1.5 opacity-65">{cat === "All" ? tools.length : tools.filter((tool) => tool.category === cat).length}</span>
+            </button>
+          ))}
+        </div>
       {/* ── Tools Grid ── */}
-      <div className="px-6 py-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-5">
+      <div className="mx-auto max-w-[1240px] px-5 py-4 sm:px-8 lg:px-10">
+        <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">
             {activeCategory === "All" ? "All PDF Tools" : `${activeCategory} Tools`}
             <span className="ml-2 text-sm font-normal text-muted-foreground">({filtered.length})</span>
@@ -223,13 +233,18 @@ export default function Home() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "grid gap-4",
-              twoCol
-                ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
-                : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+              "tool-card-grid grid gap-3 sm:gap-4",
+              twoCol ? "grid-cols-2 is-compact" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
             )}
           >
-            {filtered.map((tool, i) => {
+            {filtered.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-dashed border-border bg-white/70 px-6 py-12 text-center">
+                <Search className="mx-auto h-6 w-6 text-slate-400" />
+                <p className="mt-3 text-sm font-semibold text-foreground">No tools found</p>
+                <p className="mt-1 text-xs text-muted-foreground">Try another search or choose a different category.</p>
+                <button className="mt-4 text-xs font-semibold text-primary hover:underline" onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}>Clear filters</button>
+              </div>
+            ) : filtered.map((tool, i) => {
               const saved = isSaved(tool.href);
               return (
                 <motion.div
@@ -237,7 +252,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.03 }}
-                  className={cn("group relative bg-card border border-border rounded-2xl cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all duration-200", twoCol ? "p-3" : "p-5")}
+                  className={cn("tool-card group relative cursor-pointer", twoCol ? "p-3" : "p-4 sm:p-5")}
                   onClick={() => setLocation(tool.href)}
                   data-testid={`tool-card-${tool.href.replace("/", "")}`}
                 >
@@ -250,7 +265,7 @@ export default function Home() {
                     <Star className={cn("w-3.5 h-3.5", saved ? "fill-amber-500" : "")} />
                   </button>
                   <div className={cn("flex gap-3", twoCol ? "flex-col items-center text-center" : "flex-row items-start")}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tool.color}`}>
+                    <div className={`tool-icon w-10 h-10 rounded-[14px] flex items-center justify-center flex-shrink-0 ${tool.color}`}>
                       <tool.icon className="w-5 h-5" />
                     </div>
                     <div className={cn("min-w-0", twoCol ? "pr-0" : "flex-1 pr-4")}>
@@ -269,9 +284,11 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
+      </section>
+
       {/* ── Recent Activity ── */}
       {recentItems.length > 0 && (
-        <div className="px-6 py-4 max-w-5xl mx-auto border-t border-border">
+        <div className="mx-auto max-w-[1240px] px-5 py-5 sm:px-8 lg:px-10 border-t border-border/70">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Recent Activity</h3>
           <div className="flex flex-wrap gap-2">
             {recentItems.slice(0, 5).map((item) => (
@@ -287,7 +304,7 @@ export default function Home() {
 
       {/* ── Saved Tools ── */}
       {savedTools.length > 0 && (
-        <div className="px-6 py-4 max-w-5xl mx-auto border-t border-border">
+        <div className="mx-auto max-w-[1240px] px-5 py-5 sm:px-8 lg:px-10 border-t border-border/70">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Saved Tools</h3>
           <div className="flex flex-wrap gap-2">
             {savedTools.map((tool) => (
@@ -301,7 +318,7 @@ export default function Home() {
       )}
 
       {/* ── Privacy note ── */}
-      <div className="px-6 py-6 max-w-5xl mx-auto">
+      <div className="mx-auto max-w-[1240px] px-5 py-5 sm:px-8 lg:px-10">
         <div className="rounded-2xl bg-accent/50 border border-border p-5 flex items-start gap-4">
           <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5"><Lock className="w-4 h-4 text-primary" /></div>
           <div>
@@ -312,7 +329,7 @@ export default function Home() {
       </div>
 
       {/* ── About Developer ── */}
-      <div className="px-6 pb-10 max-w-5xl mx-auto">
+      <div className="mx-auto max-w-[1240px] px-5 pb-10 sm:px-8 lg:px-10">
         <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center flex-shrink-0 shadow-md">
             <Zap className="w-7 h-7 text-white" />
