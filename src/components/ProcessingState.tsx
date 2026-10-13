@@ -6,8 +6,9 @@ import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
 import PdfPreviewStrip from "@/components/PdfPreviewStrip";
 import { useState, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function fmt(b: number) {
   if (!b) return "0 B";

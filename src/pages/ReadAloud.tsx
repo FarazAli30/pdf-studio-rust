@@ -8,12 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import FileDropZone from "@/components/FileDropZone";
 import { useToast } from "@/hooks/use-toast";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   autoLoadModel, setPiperModel, piperSynth, piperSpeak,
   hasPiperModel, clearPiperCache, prewarmPiper, type PiperModelFiles, type SynthResult,
 } from "@/lib/tts";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function dlWav(buf: ArrayBuffer, name: string) {
   const a = document.createElement("a");

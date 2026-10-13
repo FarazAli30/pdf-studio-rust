@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import FileDropZone from "@/components/FileDropZone";
 import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
 import { cn } from "@/lib/utils";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const yieldFrame = () => new Promise<void>(res => requestAnimationFrame(() => res()));
 

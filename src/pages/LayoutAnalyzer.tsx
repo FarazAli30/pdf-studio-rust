@@ -5,8 +5,9 @@ import { Layout } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import FileDropZone from "@/components/FileDropZone";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface Block { type: "header"|"paragraph"|"column"|"image"|"table"; x: number; y: number; w: number; h: number; text: string; }
 interface PageLayout { page: number; columns: number; blocks: Block[]; }

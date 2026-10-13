@@ -7,8 +7,9 @@ import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { compressPdf, bytesOf } from "@/lib/backend";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function downloadBlob(bytes: Uint8Array, name: string) {
   const blob = new Blob([bytes.slice()], { type: "application/pdf" });

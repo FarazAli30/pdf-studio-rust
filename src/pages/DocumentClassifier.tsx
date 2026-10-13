@@ -4,8 +4,9 @@ import * as pdfjs from "pdfjs-dist";
 import { Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropZone from "@/components/FileDropZone";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const CATEGORIES = [
   { label:"Invoice/Receipt", keywords:["invoice","receipt","total","amount due","subtotal","tax","billing","payment","bill to","due date","item","qty","unit price"], color:"bg-green-100 text-green-700" },

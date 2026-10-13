@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { useRecent } from "@/contexts/RecentContext";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function downloadBlob(b: Uint8Array, n: string) { const url=URL.createObjectURL(new Blob([b.slice()],{type:"application/pdf"})),a=document.createElement("a"); a.href=url; a.download=n; a.click(); URL.revokeObjectURL(url); }
 function formatBytes(b: number) { const k=1024,s=["B","KB","MB","GB"],i=Math.floor(Math.log(b)/Math.log(k)); return `${parseFloat((b/Math.pow(k,i)).toFixed(1))} ${s[i]}`; }

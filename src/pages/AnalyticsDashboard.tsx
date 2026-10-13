@@ -4,8 +4,9 @@ import * as pdfjs from "pdfjs-dist";
 import { BarChart2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
 import FileDropZone from "@/components/FileDropZone";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface PageStat { page: number; words: number; images: number; fonts: number; }
 interface DocStats { pageStats: PageStat[]; totalWords: number; totalImages: number; fontDist: { name: string; value: number }[]; imageDist: { name: string; value: number }[]; textDensityDist: { range: string; count: number }[]; }

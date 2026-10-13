@@ -4,8 +4,9 @@ import * as pdfjs from "pdfjs-dist";
 import { Receipt, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropZone from "@/components/FileDropZone";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface InvoiceData {
   invoiceNumber: string; date: string; dueDate: string; vendor: string;

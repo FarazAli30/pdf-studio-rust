@@ -7,8 +7,9 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import FileDropZone from "@/components/FileDropZone";
 import { renderPages, toDataUrl, bytesOf } from "@/lib/backend";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 export default function ThumbnailGenerator() {
   const [file,setFile]=useState<File|null>(null);

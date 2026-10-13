@@ -8,8 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useRecent } from "@/contexts/RecentContext";
 import { useCurrentPdf } from "@/contexts/CurrentPdfContext";
 import { cn } from "@/lib/utils";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface TextItem { str: string; x: number; y: number; w: number; h: number; fontSize: number; }
 

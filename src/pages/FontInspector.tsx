@@ -4,8 +4,9 @@ import * as pdfjs from "pdfjs-dist";
 import { Type, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropZone from "@/components/FileDropZone";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface FontInfo { name: string; type: string; embedded: boolean; pages: number[]; }
 

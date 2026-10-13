@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import FileDropZone from "@/components/FileDropZone";
 import ProcessingState from "@/components/ProcessingState";
 import { useRecent } from "@/contexts/RecentContext";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 function downloadBlob(bytes: Uint8Array, name: string) { const blob=new Blob([bytes.slice()],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }
 
 interface TocEntry { text: string; page: number; level: number; }

@@ -12,8 +12,9 @@ import ProcessingState from "@/components/ProcessingState";
 import { useToast } from "@/hooks/use-toast";
 import { useRecent } from "@/contexts/RecentContext";
 import { cn } from "@/lib/utils";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const yieldFrame = () => new Promise<void>(res => requestAnimationFrame(() => res()));
 
