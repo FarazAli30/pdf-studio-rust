@@ -87,7 +87,7 @@ jobs:
       - name: Build debug APK
         env:
           RUST_BACKTRACE: '1'
-        run: npm run android:apk -- --verbose --stacktrace
+        run: npm run android:apk -- --verbose
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
