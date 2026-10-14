@@ -7,6 +7,8 @@ if [[ -d "$HOME/.cargo/bin" ]]; then export PATH="$HOME/.cargo/bin:$PATH"; fi
 
 BUILD_MODE="debug"
 SPLIT_PER_ABI=0
+VERBOSE=0
+GRADLE_STACKTRACE=0
 TARGETS=(aarch64)
 TARGETS_EXPLICIT=0
 
@@ -24,6 +26,8 @@ Options:
   --release          Build a release APK (configure Android signing before distribution)
   --target ARCH      Android ABI: aarch64, armv7, i686, or x86_64. Repeat for more.
   --split-per-abi    Generate a separate APK for each selected ABI.
+  --verbose          Enable verbose Tauri build logging.
+  --stacktrace       Ask Gradle to print its full failure stacktrace.
   -h, --help         Show this help.
 
 Environment:
@@ -43,6 +47,8 @@ while (($#)); do
     --debug) BUILD_MODE="debug"; shift ;;
     --release) BUILD_MODE="release"; shift ;;
     --split-per-abi) SPLIT_PER_ABI=1; shift ;;
+    --verbose) VERBOSE=1; shift ;;
+    --stacktrace) GRADLE_STACKTRACE=1; shift ;;
     --target)
       (($# >= 2)) || fail "--target requires an ABI name."
       if ((TARGETS_EXPLICIT == 0)); then TARGETS=(); TARGETS_EXPLICIT=1; fi
@@ -151,6 +157,8 @@ build_args=(android build --apk --ci)
 [[ "$BUILD_MODE" == "debug" ]] && build_args+=(--debug)
 ((SPLIT_PER_ABI == 0)) || build_args+=(--split-per-abi)
 for abi in "${TARGETS[@]}"; do build_args+=(--target "$abi"); done
+((VERBOSE == 0)) || build_args+=(--verbose)
+((GRADLE_STACKTRACE == 0)) || build_args+=(-- --stacktrace)
 "$TAURI_CLI" "${build_args[@]}"
 
 APK_DIR="$ANDROID_PROJECT/app/build/outputs/apk"
